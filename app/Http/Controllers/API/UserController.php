@@ -4,7 +4,7 @@ namespace App\Http\Controllers\API;
 
 use App\Models\User;
 use App\Models\Role;
-use App\Models\Locations;
+use App\Models\Location;
 use App\Models\People;
 use App\Models\Status;
 use Illuminate\Http\Request;
@@ -47,12 +47,12 @@ class UserController extends Controller
      {
         $roles = Role::select('id', 'name')->orderBy('name')->get();
         $statuses = Status::select('id', 'description')->orderBy('description')->get();
-        $locations = Locations::select('id', 'name')->orderBy('name')->get();
+        $locations = Location::select('id', 'name')->orderBy('name')->get();
 
         return response()->json([
             'roles'     => Role::all(),
             'statuses'  => Status::all(),
-            'locations' => Locations::all()
+            'locations' => Location::all()
         ]);
      }
 

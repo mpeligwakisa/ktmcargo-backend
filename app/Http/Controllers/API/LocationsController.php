@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
-use App\Models\Locations;
+use App\Models\Location;
 use Illuminate\Http\Request;
 
 class LocationsController extends Controller
@@ -14,7 +14,7 @@ class LocationsController extends Controller
     public function index()
     {
         // Return only id and name fields for dropdown
-        $locations = Locations::select('id', 'name')->orderBy('name')->get();
+        $locations = Location::select('id', 'name')->orderBy('name')->get();
 
         return response()->json($locations, 200);
     }
@@ -33,7 +33,7 @@ class LocationsController extends Controller
 
         //$validated['created_by'] = Auth::id();
 
-        $location = Locations::create($validated);
+        $location = Location::create($validated);
 
         return response()->json(['message' => 'Location created successfully', 'location' => $location], 200);
     }
@@ -44,7 +44,7 @@ class LocationsController extends Controller
     public function show(string $id)
     {
         //
-        $location = Locations::find($id);
+        $location = Location::find($id);
     }
 
     /**
@@ -53,7 +53,7 @@ class LocationsController extends Controller
     public function update(Request $request, string $id)
     {
         //
-        $locations = Locations::find($id);
+        $locations = Location::find($id);
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:locations,name,' . $id,
             'code' => 'nullable|string|max:50|unique:locations,code,' . $id,
@@ -71,7 +71,7 @@ class LocationsController extends Controller
     public function destroy(string $id)
     {
         //
-        $locations = Locations::find($id);
+        $locations = Location::find($id);
         $locations->delete();
         return response()->json(['message' => 'Location deleted successfully']);
     }
