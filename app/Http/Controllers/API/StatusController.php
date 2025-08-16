@@ -15,7 +15,7 @@ class StatusController extends Controller
         return response()->json(Status::all());
     }
 
-    // GET /api/statuses/{id}
+    // GET /api/status/{id}
     public function show($id)
     {
         $status = Status::find($id);
@@ -30,7 +30,7 @@ class StatusController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'description' => 'required|string|unique:statuses|max:100',
+            'description' => 'required|string|unique:status|max:100',
         ]);
 
         $validated['created_by'] = Auth::id();
@@ -40,7 +40,7 @@ class StatusController extends Controller
         return response()->json(['message' => 'Status created', 'status' => $status], 201);
     }
 
-    // PUT /api/statuses/{id}
+    // PUT /api/status/{id}
     public function update(Request $request, $id)
     {
         $status = Status::find($id);
@@ -49,7 +49,7 @@ class StatusController extends Controller
         }
 
         $validated = $request->validate([
-            'description' => 'required|string|unique:statuses,description,' . $status->id,
+            'description' => 'required|string|unique:status,description,' . $status->id,
         ]);
 
         $validated['updated_by'] = Auth::id();

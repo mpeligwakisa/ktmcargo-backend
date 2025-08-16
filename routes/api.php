@@ -38,6 +38,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/users', [UserController::class, 'index']); // List users with role info
         Route::get('/users/form-options', [UserController::class, 'formOptions']); // Get roles, statuses, locations for dropdowns
         Route::post('/users', [UserController::class, 'store']); // Create new user
+        Route::put('/users/{id}', [UserController::class, 'update']);   // Update user
+        Route::delete('/users/{id}', [UserController::class, 'destroy']); // Soft delete user
 
          // Clients
         Route::get('/clients', [ClientController::class, 'index']); // List clients (with search & pagination)
@@ -63,6 +65,9 @@ Route::prefix('v1')->group(function () {
          Route::get('/people/{id}', [PeopleController::class, 'show']);
          Route::put('/people/{id}', [PeopleController::class, 'update']);
          Route::delete('/people/{id}', [PeopleController::class, 'destroy']);
+
+         // Roles endpoint (optional)
+         Route::get('/roles', [UserController::class, 'getRoles']);
  
          // ✅ Statuses (CRUD)
          Route::get('/statuses', [StatusController::class, 'index']);

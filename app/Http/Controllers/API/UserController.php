@@ -19,23 +19,24 @@ class UserController extends Controller
      */
     public function index()
     {
-        $users = User::with(['role:id,name', 'people', 'status', 'location'])
-            ->select('id', 'firstName', 'middleName', 'lastName', 'email', 'status', 'staffNumber', 'role_id')
+        $users = User::with(['role:id,name', 'people', 'status:id,description', 'location:id,name'])
+            //->select('id', 'firstName', 'middleName', 'lastName', 'email', 'status', 'staffNumber', 'role_id')
             ->orderBy('created_at', 'desc')
             ->get();
 
         // Add role name to each user
-        $users = $users->transform(function ($user) {
+        $users = $users->map(function ($user) {
             return [
-                'id' => $user->id,
-                'firstName' => $people->firstName?? '',
-                'middleName' => $people->middleName?? '',
-                'lastName' => $people->lastName?? '',
-                'email' => $user->email,
-                'staffNumber' => $user->staffNumber,
-                'status' => $user->status,
-                'role' => $user->role?->name,
-                'location' => $user->location, // optional future support
+                'id'          => $user->id,
+                'firstName'   => $user->person?->first_name?? '',
+                'middleName'  => $user->person?->middle_name?? '',
+                'lastName'    => $user->person?->last_name?? '',
+                'gender'      => $user->person?->gender ?? '',
+                'email'       => $user->email,
+                'staffNumber' => $user->staff_number,
+                'status'      => $user->status?->description ?? '',
+                'role'        => $user->role?->name ?? '',
+                'location'    => $user->location?->name ?? '', // optional future support
             ];
         });
 
@@ -46,12 +47,12 @@ class UserController extends Controller
      public function formOptions()
      {
         $roles = Role::select('id', 'name')->orderBy('name')->get();
-        $statuses = Status::select('id', 'description')->orderBy('description')->get();
+        $status = Status::select('id', 'description')->orderBy('description')->get();
         $locations = Location::select('id', 'name')->orderBy('name')->get();
 
         return response()->json([
             'roles'     => Role::all(),
-            'statuses'  => Status::all(),
+            'status'  => Status::all(),
             'locations' => Location::all()
         ]);
      }
@@ -65,11 +66,10 @@ class UserController extends Controller
             'firstName'      => 'required|string|max:255',
             'middleName'     => 'nullable|string|max:255',
             'lastName'       => 'required|string|max:255',
-            'email'          => 'required|email|unique:users,email',
+            'email'          => 'required|email|users,email',
             'password'       => 'required|string|min:6',
             'gender'         => 'required|in:male,female',
-            //'confirmPassword'=> 'required|same:password',
-            'status_id'         => 'required|exists:status,id',
+            'status_id'      => 'required|exists:status,id',
             //'staffNumber'    => 'nullable|string|max:100',
             'mobile'         => 'nullable|string|max:20',
             //'personalCode'   => 'nullable|string|max:50',
@@ -86,10 +86,19 @@ class UserController extends Controller
         $data = $validator->validated();
 
         // Handle photo upload
-        if ($request->hasFile('photo')) {
-            $data['photo'] = $request->file('photo')->store('users', 'public');
-        }
+        // if ($request->hasFile('photo')) {
+        //     $data['photo'] = $request->file('photo')->store('users', 'public');
+        // }
 
+        // Create People record first
+        $people = People::create([
+            'first_name' => $data['firstName'],
+            'middle_name' => $data['middleName']?? null,
+            'last_name' => $data['lastName'],
+            'gender' => $data['gender'],
+        ]);
+
+        // Assign people_id to user data
         $user = User::create([
             'email'         => $data['email'],
             'password'      => Hash::make($data['password']),
@@ -101,14 +110,7 @@ class UserController extends Controller
 
         ]);
 
-        $people = People::create([
-            'first_name' => $data['firstName'],
-            'middle_name' => $data['middleName']?? null,
-            'last_name' => $data['lastName'],
-            'gender' => $data['gender'],
-        ]);
-
-        return response()->json(['message' => 'User created successfully', 'user' => $user], 201);
+        return response()->json(['message' => 'User created successfully', 'user' => $user], 200);
     }
 
     /**
@@ -116,7 +118,7 @@ class UserController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $user = User::findOrFail($id);
+        $user = User::with('person')->findOrFail($id);
 
         $validator = Validator::make($request->all(), [
             'firstName'      => 'sometimes|required|string|max:255',
@@ -140,6 +142,17 @@ class UserController extends Controller
 
         $data = $validator->validated();
 
+        // Update People
+        if ($user->person) {
+            $user->person->update([
+                'first_name'  => $data['firstName'] ?? $user->person->first_name,
+                'middle_name' => $data['middleName'] ?? $user->person->middle_name,
+                'last_name'   => $data['lastName'] ?? $user->person->last_name,
+                'gender'      => $data['gender'] ?? $user->person->gender,
+            ]);
+        }
+
+        // Update password data
         if (!empty($data['password'])) {
             $data['password'] = Hash::make($data['password']);
         } else {

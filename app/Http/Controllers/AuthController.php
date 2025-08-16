@@ -31,7 +31,9 @@ namespace App\Http\Controllers;
          }
  
          // Get authenticated user
-         $user = Auth::user();
+         $user = User:: with(['role:id,name', 'people:id,first_name,middle_name,last_name,gender', 'location:id,name'])
+                     ->where('email', $request->email)
+                     ->first();
  
          // Create API token
          $token = $user->createToken('authToken')->plainTextToken;
@@ -42,7 +44,9 @@ namespace App\Http\Controllers;
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
-                'role' => $user->role->name, // 👈 Now returns actual role name
+                'role' => $user->role?->name?? null, // 👈 Now returns actual role 
+                'status' => $user->status?->description?? null, // 👈 Now returns actual status
+                'location' => $user->location?->name?? null, // 👈 Now returns actual location
             ],
              'token' => $token
          ], 200);
