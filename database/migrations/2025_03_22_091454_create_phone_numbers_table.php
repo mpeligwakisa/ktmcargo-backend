@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('phone__numbers', function (Blueprint $table) {
+        Schema::create('mobile_numbers', function (Blueprint $table) {
             $table->id()->autoIncrement();
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade'); // Foreign key
             $table->string('phone_number');

@@ -15,12 +15,14 @@ return new class extends Migration
             $table->id()->unique();
             $table->string('name');
             $table->string('email');
+            //$table->string('username')->unique();
+            $table->string('phone')->nullable(); // Optional: For storing phone numbers
             $table->string('password');
             $table->foreignId('role_id')->constrained('roles')->onDelete('cascade');
             $table->foreignId('people_id')->constrained('people')->onDelete('cascade');
             $table->foreignId('status_id')->constrained('status')->onDelete('set null');
-            $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('set null'); 
-            $table->foreignId('updated_by')->nullable()->constrained('users')->onDelete('set null');
+            $table->foreignId('created_by')->constrained('users', 'id')->onDelete('set null'); 
+            $table->foreignId('updated_by')->constrained('users', 'id')->onDelete('set null');
             $table->rememberToken();
             $table->softDeletes();
             $table->timestamps();

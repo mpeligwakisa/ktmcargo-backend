@@ -17,33 +17,67 @@ class UserController extends Controller
     /**
      * Display a listing of users with role info.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::with(['role:id,name', 'people', 'status:id,description', 'location:id,name'])
-            //->select('id', 'firstName', 'middleName', 'lastName', 'email', 'status', 'staffNumber', 'role_id')
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $authUser = $request->user();
+
+        $query = User::with(['role',  'location', 'status', 'people']);
+            
+        // Apply location filtering if user is not super admin
+        // if ($request->user()->role->name !== 'Admin') {
+        //     $query->where('location_id', $request->user()->location_id);
+        // }
+
+        // 🔒 Restrict normal users to their own location
+        if (!$authUser->role || strtolower($authUser->role->name) !== 'admin') {
+            $query->where('location_id', $authUser->location_id);
+        }
+
+        $users = $query->get();
 
         // Add role name to each user
         $users = $users->map(function ($user) {
             return [
-                'id'          => $user->id,
-                'firstName'   => $user->person?->first_name?? '',
-                'middleName'  => $user->person?->middle_name?? '',
-                'lastName'    => $user->person?->last_name?? '',
-                'gender'      => $user->person?->gender ?? '',
-                'email'       => $user->email,
-                'staffNumber' => $user->staff_number,
-                'status'      => $user->status?->description ?? '',
-                'role'        => $user->role?->name ?? '',
-                'location'    => $user->location?->name ?? '', // optional future support
+                'id' => $user->id,
+                'email' => $user->email,
+                'phone' => $user->phone,
+
+                'people' => $user->people ? [
+                    'first_name'  => $user->people->first_name,
+                    'middle_name' => $user->people->middle_name,
+                    'last_name'   => $user->people->last_name,
+                    'gender'      => $user->people->gender,
+            ] : null,
+
+                // Nested role object
+                'role' => $user->role ? [
+                    'id' => $user->role->id,
+                    'name' => $user->role->name,
+                    'permissions' => $user->role->permissions ?? [],
+                ] : null,
+
+                // Nested location object
+                'location' => $user->location ? [
+                    'id' => $user->location->id,
+                    'name' => $user->location->name,
+                ] : null,
+
+                // Nested status object
+                'status' => $user->status ? [
+                    'id' => $user->status->id,
+                    'description' => $user->status->description,
+                ] : null,
+
+                // 'people'      => $user->people
+                // ? trim("{$user->people->first_name} {$user->people->middle_name} {$user->people->last_name}")
+                // : null, // ✅ fix
             ];
         });
 
         return response()->json($users);
     }
 
-     // Get roles, statuses, and locations for dropdowns
+     // Get role, status, and location for dropdowns
      public function formOptions()
      {
         $roles = Role::select('id', 'name')->orderBy('name')->get();
@@ -51,9 +85,9 @@ class UserController extends Controller
         $locations = Location::select('id', 'name')->orderBy('name')->get();
 
         return response()->json([
-            'roles'     => Role::all(),
+            'role'     => Role::all(),
             'status'  => Status::all(),
-            'locations' => Location::all()
+            'location' => Location::all()
         ]);
      }
 
@@ -63,15 +97,15 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'firstName'      => 'required|string|max:255',
-            'middleName'     => 'nullable|string|max:255',
-            'lastName'       => 'required|string|max:255',
-            'email'          => 'required|email|users,email',
+            'first_name'      => 'required|string|max:255',
+            'middle_name'     => 'nullable|string|max:255',
+            'last_name'       => 'required|string|max:255',
+            'email'          => 'required|email|email',
             'password'       => 'required|string|min:6',
             'gender'         => 'required|in:male,female',
             'status_id'      => 'required|exists:status,id',
             //'staffNumber'    => 'nullable|string|max:100',
-            'mobile'         => 'nullable|string|max:20',
+            'phone'         => 'nullable|string|max:20',
             //'personalCode'   => 'nullable|string|max:50',
             'role_id'        => 'required|exists:roles,id',
             'location_id'    => 'required|exists:locations,id',
@@ -92,9 +126,9 @@ class UserController extends Controller
 
         // Create People record first
         $people = People::create([
-            'first_name' => $data['firstName'],
-            'middle_name' => $data['middleName']?? null,
-            'last_name' => $data['lastName'],
+            'first_name' => $data['first_name'],
+            'middle_name' => $data['middle_name']?? null,
+            'last_name' => $data['last_name'],
             'gender' => $data['gender'],
         ]);
 
@@ -103,8 +137,8 @@ class UserController extends Controller
             'email'         => $data['email'],
             'password'      => Hash::make($data['password']),
             'status_id'     => $data['status_id'],
-            'people_id'     => $data['people_id'],
-            'mobile'        => $data['mobile'] ?? null,
+            'people_id'     => $people->id,
+            'phone'        => $data['phone'] ?? null,
             'role_id'       => $data['role_id'],
             'location_id'   => $data['location_id'],
 
@@ -118,19 +152,20 @@ class UserController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $user = User::with('person')->findOrFail($id);
+        $user = User::with('people')->findOrFail($id);
 
         $validator = Validator::make($request->all(), [
-            'firstName'      => 'sometimes|required|string|max:255',
-            'middleName'     => 'nullable|string|max:255',
-            'lastName'       => 'sometimes|required|string|max:255',
-            'email'          => 'sometimes|required|email|unique:users,email,' . $user->id,
+            'first_name'      => 'sometimes|required|string|max:255',
+            'middle_name'     => 'nullable|string|max:255',
+            'last_name'       => 'sometimes|required|string|max:255',
+            'email'          => 'sometimes|required|email|unique:email,' . $user->id,
             'password'       => 'nullable|string|min:6',
             'status'         => 'nullable|in:Active,Inactive',
-            'staffNumber'    => 'nullable|string|max:100',
-            'mobile'         => 'nullable|string|max:20',
-            'personalCode'   => 'nullable|string|max:50',
+            // 'staffNumber'    => 'nullable|string|max:100',
+            'phone'         => 'nullable|string|max:20',
+            // 'personalCode'   => 'nullable|string|max:50',
             'role_id'        => 'nullable|exists:roles,id',
+            'location_id'    => 'nullable|exists:locations,id',
             'permissions'    => 'nullable|array',
             'stations'       => 'nullable|array',
             'photo'          => 'nullable|image|max:2048',
@@ -143,12 +178,12 @@ class UserController extends Controller
         $data = $validator->validated();
 
         // Update People
-        if ($user->person) {
-            $user->person->update([
-                'first_name'  => $data['firstName'] ?? $user->person->first_name,
-                'middle_name' => $data['middleName'] ?? $user->person->middle_name,
-                'last_name'   => $data['lastName'] ?? $user->person->last_name,
-                'gender'      => $data['gender'] ?? $user->person->gender,
+        if ($user->people) {
+            $user->people->update([
+                'first_name'  => $data['first_name'] ?? $user->people->first_name,
+                'middle_name' => $data['middle_name'] ?? $user->people->middle_name,
+                'last_name'   => $data['last_name'] ?? $user->people->last_name,
+                'gender'      => $data['gender'] ?? $user->people->gender,
             ]);
         }
 
@@ -181,11 +216,11 @@ class UserController extends Controller
     }
 
     /**
-     * List all roles for dropdown selection.
+     * List all role for dropdown selection.
      */
-    public function getRoles()
+    public function getRole()
     {
-        $roles = Role::select('id', 'name')->get();
-        return response()->json($roles);
+        $role = Role::select('id', 'name')->get();
+        return response()->json($role);
     }
 }

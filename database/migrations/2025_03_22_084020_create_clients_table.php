@@ -22,7 +22,7 @@ class CreateClientsTable extends Migration
             $table->string('gender');
             $table->string('email');
             $table->string('phone');
-            $table->string('location');
+            $table->foreignId('location_id')->nullable()->constrained('locations')->onDelete('set null');
             $table->boolean('is_repeating')->default(false); // Repeating client or not
             $table->timestamps();
             $table->softDeletes();

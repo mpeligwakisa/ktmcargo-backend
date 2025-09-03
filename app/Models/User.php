@@ -23,6 +23,11 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'status_id',
+        'people_id',
+        'phone',
+        'role_id',
+        'location_id',
     ];
 
     /**
@@ -48,6 +53,28 @@ class User extends Authenticatable
         ];
     }
 
+    /**
+     * Automatically set the "name" when creating a new user.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($user) {
+            // Fetch related people record (since first_name & last_name are in people table)
+            if ($user->people) {
+                $firstInitial = strtoupper(substr($user->people->first_name, 0, 1));
+                $lastName = ucfirst($user->people->last_name);
+                $user->name = $firstInitial . $lastName;
+            }
+        });
+    }
+
+    public function people()
+    {
+        return $this->belongsTo(People::class, 'people_id');
+    }
+
     public function phoneNumbers()
     {
         return $this->hasMany(Phone_Numbers::class);
@@ -55,16 +82,35 @@ class User extends Authenticatable
 
     public function role()
     {
-    return $this->belongsTo(Role::class);
+    return $this->belongsTo(Role::class, 'role_id');
     }
+
+    public function status()
+    {
+        return $this->belongsTo(Status::class, 'status_id');
+    }
+
+    public function location()
+    {
+        return $this->belongsTo(Location::class, 'location_id');
+    }
+
     public function creator()
     {
-        return $this->belongsTo(User::class, 'created_by');
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     public function updater()
     {
-        return $this->belongsTo(User::class, 'updated_by');
+        return $this->belongsTo(User::class, 'users_id');
     }
+
+    // App\Models\User.php
+    public function isAdmin()
+    {
+        return in_array($this->role->name, ['Admin', 'Superuser']); 
+    }
+
+
 
 }

@@ -20,8 +20,7 @@ class Client extends Model
         'email',
         'phone',
         'gender',
-        'location',
-        'created_at',
+        'location_id',
         'is_repeating',
     ];
 
@@ -31,9 +30,9 @@ class Client extends Model
         return $this->hasMany(Cargo::class, 'client_id');
     }
 
-    public function locations()
+    public function location()
     {
-        return $this->belongsTo(Locations::class);
+        return $this->belongsTo(Location::class,'location_id' );
     }
 
     public function phoneNumbers()

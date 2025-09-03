@@ -8,7 +8,12 @@ use Illuminate\Http\Request;
 
 class CargoController extends Controller {
     public function index(Request $request) {
+
         return Cargo::where('location_id', $request->user()->location_id)->get();
+
+        if (!$authUser->isSuperUser()) {
+            $query->where('location_id', $authUser->location_id);
+        }
     }
 
     public function store(Request $request) {

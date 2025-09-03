@@ -11,6 +11,10 @@ class Location extends Model
     //
     use HasFactory;
     use SoftDeletes;
+
+    // Specify the table name if it's not the default plural form ('locations')
+    protected $table = 'locations';
+    
     protected $fillable = [
         'name',
         'code',
@@ -23,7 +27,17 @@ class Location extends Model
         return $this->hasMany(Client::class);
     }
 
-    public function p()
+    public function users()
+    {
+        return $this->hasMany(User::class);
+    }
+
+    public function cargo()
+    {
+        return $this->hasMany(Cargo::class, 'location_id');
+    }
+
+    public function phoneNumbers()
     {
         return $this->hasMany(Phone_Numbers::class);
     }

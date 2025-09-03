@@ -9,7 +9,7 @@ use App\Http\Controllers\API\UserController;
 use App\Http\Controllers\API\CargoController;
 use App\Http\Controllers\API\PeopleController;
 use App\Http\Controllers\API\StatusController;
-use App\Http\Controllers\API\LocationsController;
+use App\Http\Controllers\API\LocationController;
 use App\Http\Controllers\ReportController;
 
 Route::prefix('v1')->group(function () {
@@ -36,13 +36,14 @@ Route::prefix('v1')->group(function () {
 
         // Users
         Route::get('/users', [UserController::class, 'index']); // List users with role info
-        Route::get('/users/form-options', [UserController::class, 'formOptions']); // Get roles, statuses, locations for dropdowns
+        Route::get('/users/form-options', [UserController::class, 'formOptions']); // Get roles, status, location for dropdowns
         Route::post('/users', [UserController::class, 'store']); // Create new user
         Route::put('/users/{id}', [UserController::class, 'update']);   // Update user
         Route::delete('/users/{id}', [UserController::class, 'destroy']); // Soft delete user
 
          // Clients
         Route::get('/clients', [ClientController::class, 'index']); // List clients (with search & pagination)
+        Route::get('/clients/form-options', [ClientController::class, 'formOptions']); // Get roles, status, location for dropdowns
         Route::post('/clients', [ClientController::class, 'store']); //add client
         Route::put('/clients/{id}', [ClientController::class, 'update']); //update client
         Route::delete('/clients/{id}', [ClientController::class, 'destroy']); //delete client
@@ -69,19 +70,19 @@ Route::prefix('v1')->group(function () {
          // Roles endpoint (optional)
          Route::get('/roles', [UserController::class, 'getRoles']);
  
-         // ✅ Statuses (CRUD)
-         Route::get('/statuses', [StatusController::class, 'index']);
-         Route::post('/statuses', [StatusController::class, 'store']);
-         Route::get('/statuses/{id}', [StatusController::class, 'show']);
-         Route::put('/statuses/{id}', [StatusController::class, 'update']);
-         Route::delete('/statuses/{id}', [StatusController::class, 'destroy']);
+         // ✅ Status (CRUD)
+         Route::get('/status', [StatusController::class, 'index']);
+         Route::post('/status', [StatusController::class, 'store']);
+         Route::get('/status/{id}', [StatusController::class, 'show']);
+         Route::put('/status/{id}', [StatusController::class, 'update']);
+         Route::delete('/status/{id}', [StatusController::class, 'destroy']);
 
-        // Locations
-        Route::get('/locations', [LocationsController::class, 'index']);
-        Route::post('/locations', [LocationsController::class, 'store']);
-        Route::get('/locations/{location}', [LocationsController::class, 'show']);
-        Route::put('/locations/{location}', [LocationsController::class, 'update']);
-        Route::delete('/locations/{location}', [LocationsController::class, 'destroy']);
+        // Location
+        Route::get('/locations', [LocationController::class, 'index']);
+        Route::post('/locations', [LocationController::class, 'store']);
+        Route::get('/locations/{id}', [LocationController::class, 'show']);
+        Route::put('/locations/{id}', [LocationController::class, 'update']);
+        Route::delete('/locations/{id}', [LocationController::class, 'destroy']);
 
 
     });

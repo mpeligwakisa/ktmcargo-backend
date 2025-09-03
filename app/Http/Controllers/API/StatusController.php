@@ -9,10 +9,14 @@ use Illuminate\Support\Facades\Auth;
 
 class StatusController extends Controller
 {
-    // GET /api/statuses
+    // GET /api/status
     public function index()
     {
         return response()->json(Status::all());
+
+        if (!$authUser->isSuperUser()) {
+            $query->where('location_id', $authUser->location_id);
+        }
     }
 
     // GET /api/status/{id}
@@ -26,7 +30,7 @@ class StatusController extends Controller
         return response()->json($status);
     }
 
-    // POST /api/statuses
+    // POST /api/status
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -43,6 +47,7 @@ class StatusController extends Controller
     // PUT /api/status/{id}
     public function update(Request $request, $id)
     {
+
         $status = Status::find($id);
         if (!$status) {
             return response()->json(['message' => 'Status not found'], 404);
@@ -59,7 +64,7 @@ class StatusController extends Controller
         return response()->json(['message' => 'Status updated', 'status' => $status]);
     }
 
-    // DELETE /api/statuses/{id}
+    // DELETE /api/status/{id}
     public function destroy($id)
     {
         $status = Status::find($id);

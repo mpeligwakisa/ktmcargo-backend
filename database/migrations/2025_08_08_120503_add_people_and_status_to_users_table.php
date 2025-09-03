@@ -16,7 +16,7 @@ return new class extends Migration
             $table->unsignedBigInteger('people_id')->nullable()->after('id');
             $table->foreign('people_id')->references('id')->on('people')->onDelete('set null');
 
-            // Foreign key to statuses table
+            // Foreign key to status table
             $table->unsignedBigInteger('status_id')->nullable()->after('people_id');
             $table->foreign('status_id')->references('id')->on('status')->onDelete('set null');
         });
