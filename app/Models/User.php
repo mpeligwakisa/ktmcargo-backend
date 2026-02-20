@@ -95,6 +95,17 @@ class User extends Authenticatable
         return $this->belongsTo(Location::class, 'location_id');
     }
 
+    public function cargosCreated()
+    {
+        return $this->hasMany(Cargo::class, 'created_by');
+    }
+
+    public function cargosUpdated()
+    {
+        return $this->hasMany(Cargo::class, 'updated_by');
+    }
+
+
     public function creator()
     {
         return $this->belongsTo(User::class, 'user_id');

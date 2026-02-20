@@ -24,24 +24,28 @@ class ClientController extends Controller
     // Display a listing of clients
     public function index(Request $request)
     {
-        $user = Auth::user();
+        //$user = Auth::user();
         $authUser = $request->user();
-        $query = Client::query();
+        $query = Client::with('location');
 
         //Filter by location
-        // if($request->filled('location_id') && $authUser -> isAdmin()){
-        //     $query->where('location_id', $request->location_id);
+        // if($authUser ->role === 'admin'){
+        //     if($request->filled('location_id')){
+        //         $query->where('location_id', $request->location_id);
+        //     }
+            
         // }
-
-        if (!$user->hasRole('admin')) {
-            $query->where('location_id', $user->location_id);
-        }
-
-        //Restrict normal users to their own location
-        if (!$authUser->isAdmin()) {
+        if($authUser->location && $authUser->location->name === 'Head Office'){
+            if($request->filled('location_id')){
+               $query->where('location_id', $request->location_id);
+            }
+        }else{
             $query->where('location_id', $authUser->location_id);
         }
 
+        if (!$authUser) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
         // Search functionality
         if($request->filled('search')) {
             $search = $request->search;
@@ -79,17 +83,19 @@ class ClientController extends Controller
             'email' => 'required|email|unique:clients,email',
             'phone' => 'required|string',
             'gender' => 'required|in:male,female',
+            //'is_repeating' => 'sometimes|boolean',
+            //'location_id' => 'required|exists:locations,id',
         ];
 
         // Only admin can set location_id
-        if ($authUser->isAdmin()) {
+        if ($authUser->location->name === 'Head Office') {
             $rules['location_id'] = 'required|exists:locations,id';
         } 
 
         $validated = $request->validate($rules);
 
         // If not admin, set location_id to user's location
-        if (!$authUser->isAdmin()) {
+        if ($authUser->location->name !== 'Head Office') {
             $validated['location_id'] = $authUser->location_id;
         }
 
@@ -127,14 +133,14 @@ class ClientController extends Controller
         ];
 
         // Only admin can update location_id
-        if ($authUser->isAdmin()) {
+        if ($authUser->location->name === 'Head Office') {
             $rules['location_id'] = 'sometimes|required|exists:locations,id';
         }
 
         $validated = $request->validate($rules);
 
         // If not admin, prevent changing location_id
-        if (!$authUser->isAdmin()) {
+        if ($authUser->location->name !== 'Head Office') {
             $validated['location_id'] = $authUser->location_id;
         }
 

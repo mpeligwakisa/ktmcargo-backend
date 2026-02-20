@@ -18,12 +18,6 @@ namespace App\Http\Controllers;
              'email' => 'required|email',
              'password' => 'required'
          ]);
-
-        //  $user = User::with('role')->where('email', $request->email)->first();
-
-        //  if (!$user || !Hash::check($request->password, $user->password)) {
-        //      return response()->json(['message' => 'Invalid credentials'], 401);
-        //  }
  
          // Attempt to authenticate user
          if (!Auth::attempt($request->only('email', 'password'))) {
@@ -46,7 +40,12 @@ namespace App\Http\Controllers;
                 'email' => $user->email,
                 'role' => $user->role?->name?? null, // 👈 Now returns actual role 
                 'status' => $user->status?->description?? null, // 👈 Now returns actual status
-                'location' => $user->location?->name?? null, // 👈 Now returns actual location
+                'location' => $user->location?[
+                    'id' => $user->location->id,
+                    'name' => $user->location->name,
+                    'code' => $user->location->code,
+                    'description' => $user->location->description
+                ] : null, // 👈 Now returns actual location
             ],
              'token' => $token
          ], 200);

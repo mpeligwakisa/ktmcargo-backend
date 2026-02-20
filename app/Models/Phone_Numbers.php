@@ -31,4 +31,6 @@ class Phone_Numbers extends Model
         return $this->belongsTo(User::class, 'updated_by');
     }
 
+    
+
 }

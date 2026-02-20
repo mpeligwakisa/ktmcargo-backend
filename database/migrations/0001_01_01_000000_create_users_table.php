@@ -20,9 +20,9 @@ return new class extends Migration
             $table->string('password');
             $table->foreignId('role_id')->constrained('roles')->onDelete('cascade');
             $table->foreignId('people_id')->constrained('people')->onDelete('cascade');
-            $table->foreignId('status_id')->constrained('status')->onDelete('set null');
-            $table->foreignId('created_by')->constrained('users', 'id')->onDelete('set null'); 
-            $table->foreignId('updated_by')->constrained('users', 'id')->onDelete('set null');
+            $table->foreignId('status_id')->constrained('status')->onDelete('cascade');
+            $table->foreignId('created_by')->constrained('users', 'id')->onDelete('cascade'); 
+            $table->foreignId('updated_by')->constrained('users', 'id')->onDelete('cascade');
             $table->rememberToken();
             $table->softDeletes();
             $table->timestamps();

@@ -3,48 +3,146 @@
 namespace App\Http\Controllers\API;
 use App\Models\Cargo;
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 
-class CargoController extends Controller {
-    public function index(Request $request) {
+class CargoController extends Controller
+{
+    // List cargos
+    public function index(Request $request)
+    {
+        $authUser = $request->user();
 
-        return Cargo::where('location_id', $request->user()->location_id)->get();
 
-        if (!$authUser->isSuperUser()) {
-            $query->where('location_id', $authUser->location_id);
+
+        $query = Cargo::with([
+            'client',
+            'measurement',
+            'originLocation',
+            'destinationLocation',
+            'transport',
+            'creator',
+            'updater'
+        ]);
+
+        // ✅ If user is NOT from Head Office, filter by their location
+        if ($authUser->location && strtolower($authUser->location->name) !== 'head office') {
+            $query->where(function ($q) use ($authUser) {
+                $q->where('origin_location_id', $authUser->location_id)
+                    ->orWhere('destination_location_id', $authUser->location_id);
+            });
         }
+
+        $cargos = $query->paginate(10);
+
+        return response()->json($cargos);
     }
 
-    public function store(Request $request) {
-        $request->validate([
+    // Store cargo
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
             'client_id' => 'required|exists:clients,id',
-            'description' => 'required',
-            'weight' => 'required',
-            'status' => 'required',
+            'cargo_name' => 'required|string|max:255',
+            'container_number' => 'nullable|string|max:255',
+            'category' => 'nullable|string|max:255',
+            'quantity' => 'required|integer|min:1',
+            'measurement_id' => 'required|exists:measurements,id',
+            'unit_type' => 'required|in:KG,CBM',
+            'weight_cbm' => 'nullable|numeric',
+            'value' => 'nullable|numeric',
+            'origin_location_id' => 'required|exists:locations,id',
+            'destination_location_id' => 'required|exists:locations,id',
+            'transport_id' => 'required|exists:transports,id',
+            'packaging' => 'nullable|string|max:255',
+            'status' => 'required|string|max:255',
+            'special_instructions' => 'nullable|string|max:255',
+            'eta' => 'nullable|date',
         ]);
-
-        //$trackingNumber = 'CARGO-' . strtoupper(uniqid());
 
         // Generate a unique tracking number
-        $validated['cargo_number'] = 'CARGO-'.rand(1000,9999);
-        while (Cargo::where('tracking_number', $validated['cargo_number'])->exists()) {
-            $validated['cargo_number'] = 'CARGO-'.rand(1000,9999);
+        $validated['cargo_number'] = 'CARGO-' . rand(100000, 999999);
+        while (Cargo::where('cargo_number', $validated['cargo_number'])->exists()) {
+            $validated['cargo_number'] = 'CARGO-' . rand(100000, 999999);
         }
-        $validated['tracking_number'] = 'TRK-'.rand(100000,999999);
+        $validated['tracking_number'] = 'TRK-' . rand(100000, 999999);
         while (Cargo::where('tracking_number', $validated['tracking_number'])->exists()) {
-            $validated['tracking_number'] = 'TRK-'.rand(100000,999999);
+            $validated['tracking_number'] = 'TRK-' . rand(100000, 999999);
         }
 
-        Cargo::create([
-            'client_id' => $request->client_id,
-            'description' => $request->description,
-            'weight' => $request->weight,
-            'status' => $request->status,
-            //'tracking_number' => $trackingNumber,
-            'location_id' => $request->user()->location_id
+        $validated['created_by'] = Auth::id();
+        $validated['updated_by'] = Auth::id();
+
+        $cargo = Cargo::create($validated);
+
+        return response()->json([
+            'message' => 'Cargo created successfully',
+            //'cargo' => $cargo
+            'data' => $cargo->load(['client', 'originLocation', 'destinationLocation', 'transport'])
+        ]);
+    }
+
+    // Show single cargo
+    public function show($id)
+    {
+        $cargo = Cargo::with([
+            'client',
+            'measurement',
+            'originLocation',
+            'destinationLocation',
+            'transport',
+            'creator',
+            'updater'
+        ])->findOrFail($id);
+
+        return response()->json($cargo);
+    }
+
+    // Update cargo
+    public function update(Request $request, $id)
+    {
+        $cargo = Cargo::findOrFail($id);
+
+        $validated = $request->validate([
+            'client_id' => 'required|exists:clients,id',
+            'cargo_name' => 'required|string|max:255',
+            'cargo_number' => 'nullable|string|max:255',
+            'container_number' => 'nullable|string|max:255',
+            //'tracking_number' => 'required|string|unique:cargos,tracking_number,' . $cargo->id,
+            'category' => 'nullable|string|max:255',
+            'quantity' => 'required|integer|min:1',
+            'measurement_id' => 'required|exists:measurements,id',
+            'unit_type' => 'required|in:KG,CBM',
+            'weight_cbm' => 'nullable|numeric',
+            'value' => 'nullable|numeric',
+            'origin_location_id' => 'required|exists:locations,id',
+            'destination_location_id' => 'required|exists:locations,id',
+            'transport_id' => 'required|exists:transports,id',
+            'packaging' => 'nullable|string|max:255',
+            'status' => 'required|string|max:255',
+            'special_instructions' => 'nullable|string|max:255',
+            'eta' => 'nullable|date',
         ]);
 
-        return response()->json(['message' => 'Cargo added successfully']);
+        $validated['updated_by'] = Auth::id();
+
+        $cargo->update($validated);
+
+        return response()->json([
+            'message' => 'Cargo updated successfully',
+            'data' => $cargo->load(['client', 'originLocation', 'destinationLocation', 'transport'])
+            //'cargo' => $cargo
+        ]);
+    }
+
+    // Delete cargo
+    public function destroy($id)
+    {
+        $cargo = Cargo::findOrFail($id);
+        $cargo->delete();
+
+        return response()->json([
+            'message' => 'Cargo deleted successfully'
+        ]);
     }
 }

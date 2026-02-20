@@ -10,6 +10,8 @@ use App\Http\Controllers\API\CargoController;
 use App\Http\Controllers\API\PeopleController;
 use App\Http\Controllers\API\StatusController;
 use App\Http\Controllers\API\LocationController;
+use App\Http\Controllers\API\MeasurementController;
+use App\Http\Controllers\API\TransportController;
 use App\Http\Controllers\ReportController;
 
 Route::prefix('v1')->group(function () {
@@ -51,6 +53,9 @@ Route::prefix('v1')->group(function () {
         // Cargo
         Route::get('/cargo', [CargoController::class, 'index']);
         Route::post('/cargo', [CargoController::class, 'store']);
+        Route::get('/cargo/{id}', [CargoController::class, 'show']);
+        Route::put('/cargo/{id}', [CargoController::class, 'update']);
+        Route::delete('/cargo/{id}', [CargoController::class, 'destroy']);
 
         // Reports
         Route::prefix('reports')->group(function () {
@@ -83,6 +88,23 @@ Route::prefix('v1')->group(function () {
         Route::get('/locations/{id}', [LocationController::class, 'show']);
         Route::put('/locations/{id}', [LocationController::class, 'update']);
         Route::delete('/locations/{id}', [LocationController::class, 'destroy']);
+
+        // Measurement
+        Route::get('/measurement', [MeasurementController::class, 'index']);
+        Route::post('/measurement', [MeasurementController::class, 'store']);
+        Route::get('/measurement/{id}', [MeasurementController::class, 'show']);
+        Route::put('/measurement/{id}', [MeasurementController::class, 'update']);
+        Route::delete('/measurement/{id}', [MeasurementController::class, 'destroy']);
+        // Transport
+        Route::get('/transport', [TransportController::class, 'index']);
+        Route::post('/transport', [TransportController::class, 'store']);
+        Route::get('/transport/{id}', [TransportController::class, 'show']);
+        Route::put('/transport/{id}', [TransportController::class, 'update']);
+        Route::delete('/transport/{id}', [TransportController::class, 'destroy']);
+
+
+
+
 
 
     });

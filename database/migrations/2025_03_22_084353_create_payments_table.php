@@ -15,11 +15,15 @@ class CreatePaymentsTable extends Migration
             $table->id()->autoIncrement();
             $table->foreignId('cargo_id')->constrained('cargos')->onDelete('cascade');
             $table->foreignId('client_id')->constrained('clients')->onDelete('cascade');
+            $table->decimal('total_amount', 10, 2);
             $table->decimal('amount_paid', 10, 2);
+            $table->decimal('pending_amount', 10, 2);
             $table->enum('payment_status', ['PAID', 'PARTIAL', 'UNPAID']);
             $table->string('payment_method')->nullable(); // e.g., 'Credit Card', 'Bank Transfer'
             $table->string('transaction_id')->nullable();
             $table->timestamp('payment_date')->nullable();
+            $table->foreignId('created_by')->constrained('users', 'id')->onDelete('set null'); 
+            $table->foreignId('updated_by')->constrained('users', 'id')->onDelete('set null');
             $table->timestamps();
             $table->softDeletes();
         });

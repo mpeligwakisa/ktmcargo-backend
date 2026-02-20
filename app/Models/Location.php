@@ -41,4 +41,25 @@ class Location extends Model
     {
         return $this->hasMany(Phone_Numbers::class);
     }
+
+    public function cargosOrigin()
+    {
+        return $this->hasMany(Cargo::class, 'origin_country');
+    }
+
+    public function cargosDestination()
+    {
+        return $this->hasMany(Cargo::class, 'destination');
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function updater()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
+    }
+
 }

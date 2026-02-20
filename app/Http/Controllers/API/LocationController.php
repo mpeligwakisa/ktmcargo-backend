@@ -28,7 +28,10 @@ class LocationController extends Controller
             $locations = Location::where('id', $user->location_id)->get();
         }
 
-        return response()->json($locations, 200);
+        return response()->json([
+            'success' => true,
+            'data'    => Location::all()
+        ]);
     }
 
     /**
@@ -73,13 +76,13 @@ class LocationController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, $id)
     {
         //
-        $location = Location::find($id);
+        $location = Location::findOrFail($id);
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:location,name,' . $id,
-            'code' => 'nullable|string|max:50|unique:location,code,' . $id,
+            'name' => 'required|string|max:255|unique:locations,name,' . $id,
+            'code' => 'nullable|string|max:50|unique:locations,code,' . $id,
             'description' => 'nullable|string',
         ]);
         if (!$location) {
@@ -87,7 +90,12 @@ class LocationController extends Controller
         }
         $validated['updated_by'] = Auth::id();
 
-        $location->update($validated);
+        $location->update([
+            'name' => $validated['name'],
+            'code' => $validated['code'] ?? null,
+            'description' => $validated['description'] ?? null,
+            'updated_by' => $validated['updated_by'],
+        ]);
 
         return response()->json(['message' => 'Location updated successfully', 'location' => $location], 200);
     }

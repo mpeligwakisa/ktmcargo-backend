@@ -13,4 +13,15 @@ class People extends Model
     {
         return $this->hasOne(User::class);
     }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    // Measurement updated by user
+    public function updater()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
+    }
 }

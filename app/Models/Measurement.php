@@ -6,18 +6,28 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Role extends Model
+class Measurement extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = ['name', 'description'];
+    protected $fillable = [
+        'name',
+        'unit',
+        'created_by',
+        'updated_by',
+    ];
 
-    // Define relationship with users (assuming one user can have one role)
-    public function users()
+    /**
+     * Relationships
+     */
+
+    public function cargos()
     {
-        return $this->hasMany(User::class);
+        return $this->hasMany(Cargo::class);
     }
+     
 
+    // Measurement created by user
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
