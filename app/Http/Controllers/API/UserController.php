@@ -158,7 +158,7 @@ class UserController extends Controller
             'first_name'      => 'sometimes|required|string|max:255',
             'middle_name'     => 'nullable|string|max:255',
             'last_name'       => 'sometimes|required|string|max:255',
-            'email'          => 'sometimes|required|email|unique:email,',
+            'email'          => 'sometimes|required|email|unique:users,email,'. $id,
             'password'       => 'nullable|string|min:6',
             'status'         => 'nullable|in:Active,Inactive',
             // 'staffNumber'    => 'nullable|string|max:100',

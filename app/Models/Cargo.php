@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Carbon\Carbon;
 
 class Cargo extends Model
 {
@@ -32,6 +33,26 @@ class Cargo extends Model
         'created_by',
         'updated_by',
     ];
+
+    protected $appends = ['remaining_days'];
+
+    public function getRemainingDaysAttribute()
+    {
+        if (!$this->eta)
+            return null;
+
+        $today = Carbon::today();
+        $etaDate = Carbon::parse($this->eta);
+
+        $diff = $today->diffInDays($etaDate, false);
+
+        if ($diff < 0)
+            return "Overdue by " . abs($diff) . " days";
+        if ($diff == 0)
+            return "Today";
+
+        return $diff . " days left";
+    }
 
     // Relationships
     public function client()

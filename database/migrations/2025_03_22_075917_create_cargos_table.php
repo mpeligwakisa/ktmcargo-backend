@@ -28,7 +28,7 @@ class CreateCargosTable extends Migration
             $table->foreignId('destination_location_id')->constrained('locations')->onDelete('cascade');
             $table->foreignId('transport_id')->constrained('transports')->onDelete('cascade');
             $table->string('packaging')->nullable();
-            $table->enum('status')->nullable();
+            $table->string('status')->nullable();
             $table->text('special_instructions')->nullable();
             $table->date('eta')->nullable();
             $table->foreignId('created_by')->constrained('users', 'id')->onDelete('set null');

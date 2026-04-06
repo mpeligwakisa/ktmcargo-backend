@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers\API;
 use App\Models\Cargo;
+use App\Models\Measurement;
+
 use App\Http\Controllers\Controller;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 
@@ -35,6 +38,12 @@ class CargoController extends Controller
 
         $cargos = $query->paginate(10);
 
+        // Append remaining_days
+        $cargos->getCollection()->transform(function ($cargo) {
+            $cargo->remaining_days = $this->calculateRemainingDays($cargo->eta);
+            return $cargo;
+        });
+
         return response()->json($cargos);
     }
 
@@ -48,17 +57,26 @@ class CargoController extends Controller
             'category' => 'nullable|string|max:255',
             'quantity' => 'required|integer|min:1',
             'measurement_id' => 'required|exists:measurements,id',
-            'unit_type' => 'required|in:KG,CBM',
-            'weight_cbm' => 'nullable|numeric',
+            //'unit_type' => 'required|in:KG,CBM',
+            'weight' => 'nullable|numeric',
+            'length' => 'nullable|numeric',
+            'width' => 'nullable|numeric',
+            'height' => 'nullable|numeric',
             'value' => 'nullable|numeric',
             'origin_location_id' => 'required|exists:locations,id',
             'destination_location_id' => 'required|exists:locations,id',
             'transport_id' => 'required|exists:transports,id',
             'packaging' => 'nullable|string|max:255',
-            'status' => 'required|string|max:255',
+            //'status' => 'required|string|max:255',
             'special_instructions' => 'nullable|string|max:255',
-            'eta' => 'nullable|date',
+            'eta' => 'required|date',
         ]);
+
+        // CBM calculation
+        $validated['weight_cbm'] = $this->calculateWeightCbm($validated);
+
+        //Auto status based on ETA
+        $validated['status'] = $this->calculateStatus($validated);
 
         // Generate a unique tracking number
         $validated['cargo_number'] = 'CARGO-' . rand(100000, 999999);
@@ -78,7 +96,7 @@ class CargoController extends Controller
         return response()->json([
             'message' => 'Cargo created successfully',
             //'cargo' => $cargo
-            'data' => $cargo->load(['client', 'originLocation', 'destinationLocation', 'transport'])
+            'data' => $cargo->load(['client', 'measurement', 'originLocation', 'destinationLocation', 'transport'])
         ]);
     }
 
@@ -112,17 +130,26 @@ class CargoController extends Controller
             'category' => 'nullable|string|max:255',
             'quantity' => 'required|integer|min:1',
             'measurement_id' => 'required|exists:measurements,id',
-            'unit_type' => 'required|in:KG,CBM',
-            'weight_cbm' => 'nullable|numeric',
+            //'unit_type' => 'required|exists:measurements',
+            'weight' => 'nullable|numeric',
+            'length' => 'nullable|numeric',
+            'width' => 'nullable|numeric',
+            'height' => 'nullable|numeric',
             'value' => 'nullable|numeric',
             'origin_location_id' => 'required|exists:locations,id',
             'destination_location_id' => 'required|exists:locations,id',
             'transport_id' => 'required|exists:transports,id',
             'packaging' => 'nullable|string|max:255',
-            'status' => 'required|string|max:255',
+            //'status' => 'required|string|max:255',
             'special_instructions' => 'nullable|string|max:255',
             'eta' => 'nullable|date',
         ]);
+
+        // CBM calculation
+        $validated['weight_cbm'] = $this->calculateWeightCbm($validated);
+
+        //Auto status
+        $validated['status'] = $this->calculateStatus($validated);
 
         $validated['updated_by'] = Auth::id();
 
@@ -130,8 +157,8 @@ class CargoController extends Controller
 
         return response()->json([
             'message' => 'Cargo updated successfully',
-            'data' => $cargo->load(['client', 'originLocation', 'destinationLocation', 'transport'])
-            //'cargo' => $cargo
+            'data' => $cargo->load(['client', 'measurement', 'originLocation', 'destinationLocation', 'transport']),
+            'cargo' => $cargo
         ]);
     }
 
@@ -144,5 +171,55 @@ class CargoController extends Controller
         return response()->json([
             'message' => 'Cargo deleted successfully'
         ]);
+    }
+
+    //===========Helper Function===============
+
+    private function calculateWeightCbm($data)
+    {
+        $measurement = Measurement::findOrFail($data['measurement_id']);
+
+        if ($measurement->unit === 'KG') {
+            return $data['weight'] ?? 0;
+        }
+
+        if ($data['unit_type'] === 'CBM') {
+            if (!empty($data['length']) && !empty($data['width']) && !empty($data['height'])) {
+                return round(($data['length'] * $data['width'] * $data['height']) / 1000, 2);
+            }
+
+            return 0;
+        }
+
+        return 0;
+    }
+
+    private function calculateRemainingDays($eta)
+    {
+        if (!$eta)
+            return null;
+
+        $today = Carbon::now();
+        $etaData = Carbon::parse($eta);
+        $diff = $today->diffInDays($etaData, false);
+
+        if ($diff > 0)
+            return $diff . "days left";
+        if ($diff == 0)
+            return 'Arriving today';
+        return 'Overdue by' . abs($diff) . 'days';
+    }
+
+    private function calculateStatus($eta)
+    {
+        $today = Carbon::now();
+        $etaDate = Carbon::parse($eta);
+
+        if ($etaDate->isToday())
+            return 'Arriving Today';
+        if ($etaDate->isFuture())
+            return 'In Transit';
+        return 'Delivered';
+        // if($etaDate->isYesterday()) return '';
     }
 }
